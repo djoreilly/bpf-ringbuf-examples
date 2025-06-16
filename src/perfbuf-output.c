@@ -51,6 +51,8 @@ void handle_event(void *ctx, int cpu, void *data, unsigned int data_sz)
 	printf("%-8s %-5s %-7d %-16s %s\n", ts, "EXEC", e->pid, e->comm, e->filename);
 }
 
+void lost_fn(void *ctx, int cpu, __u64 cnt) {}
+
 int main(int argc, char **argv)
 {
 	struct perf_buffer *pb = NULL;
@@ -83,8 +85,8 @@ int main(int argc, char **argv)
 	}
 
 	/* Set up ring buffer polling */
-	pb_opts.sample_cb = handle_event;
-	pb = perf_buffer__new(bpf_map__fd(skel->maps.pb), 8 /* 32KB per CPU */, &pb_opts);
+	pb_opts.sz = sizeof(struct perf_buffer_opts);
+	pb = perf_buffer__new(bpf_map__fd(skel->maps.pb), 8, handle_event, lost_fn, NULL, &pb_opts);
 	if (libbpf_get_error(pb)) {
 		err = -1;
 		fprintf(stderr, "Failed to create perf buffer\n");
